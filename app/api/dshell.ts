@@ -92,3 +92,8 @@ export function getTestResultSeries(params: any, callback: type.Callback) {
 	// TODO
 	callback.onSuccess([]);    // FIXME
 }
+
+export function getLatestVersionInfo(params: any, callback: type.Callback) {
+	// TODO
+	callback.onSuccess([]);    // FIXME
+}

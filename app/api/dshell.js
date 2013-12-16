@@ -120,3 +120,8 @@ function getTestResultSeries(params, callback) {
 }
 exports.getTestResultSeries = getTestResultSeries;
 
+function getLatestVersionInfo(params, callback) {
+    callback.onSuccess([]);
+}
+exports.getLatestVersionInfo = getLatestVersionInfo;
+
