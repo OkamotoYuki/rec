@@ -13,11 +13,11 @@ export interface InsertArg {
 
 export class RuntimeMonitor {
 
-	constructor(public monitor_id: number, public type: string, public location: string, public auth_id: string, public begin_timestamp: Date, public latest_timestamp: Date) {
+	constructor(public monitor_id: number, public type: string, public location: string, public auth_id: string, public latest_data_id: number, public begin_timestamp: Date, public latest_timestamp: Date) {
 	}
 
 	static tableToObject(row: any) {
-		return new RuntimeMonitor(row.monitor_id, row.type, row.location, row.auth_id, row.begin_timestamp, row.latest_timestamp);
+		return new RuntimeMonitor(row.monitor_id, row.type, row.location, row.auth_id, row.latest_data_id, row.begin_timestamp, row.latest_timestamp);
 	}
 
 }
@@ -45,9 +45,19 @@ export class RuntimeMonitorDAO extends model.DAO {
 		);
 	}
 
-	get(type: string, location: string, auth_id: string, callback: (err: any, monitor: RuntimeMonitor) => void): void {
-		this.con.query('SELECT * FROM runtime_monitors WHERE type=? AND location=? AND auth_id=?',
-			[type, location, auth_id],
+	get(monitor_id: number, callback: (err: any, monitor: RuntimeMonitor) => void): void {
+		this.con.query('SELECT * FROM runtime_monitors WHERE monitor_id=?',
+			[monitor_id],
+			(err, result) => {
+				result = result[0];
+				callback(err, RuntimeMonitor.tableToObject(result));
+			}
+		);
+	}
+
+	getByMonitorInfo(type: string, location: string, callback: (err: any, monitor: RuntimeMonitor) => void): void {
+		this.con.query('SELECT * FROM runtime_monitors WHERE type=? AND location=?',
+			[type, location],
 			(err, result) => {
 				if(err) {
 					callback(err, null);

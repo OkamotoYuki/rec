@@ -8,16 +8,17 @@ var model = require('./model');
 var async = require('async');
 
 var RuntimeMonitor = (function () {
-    function RuntimeMonitor(monitor_id, type, location, auth_id, begin_timestamp, latest_timestamp) {
+    function RuntimeMonitor(monitor_id, type, location, auth_id, latest_data_id, begin_timestamp, latest_timestamp) {
         this.monitor_id = monitor_id;
         this.type = type;
         this.location = location;
         this.auth_id = auth_id;
+        this.latest_data_id = latest_data_id;
         this.begin_timestamp = begin_timestamp;
         this.latest_timestamp = latest_timestamp;
     }
     RuntimeMonitor.tableToObject = function (row) {
-        return new RuntimeMonitor(row.monitor_id, row.type, row.location, row.auth_id, row.begin_timestamp, row.latest_timestamp);
+        return new RuntimeMonitor(row.monitor_id, row.type, row.location, row.auth_id, row.latest_data_id, row.begin_timestamp, row.latest_timestamp);
     };
     return RuntimeMonitor;
 })();
@@ -43,8 +44,15 @@ var RuntimeMonitorDAO = (function (_super) {
         });
     };
 
-    RuntimeMonitorDAO.prototype.get = function (type, location, auth_id, callback) {
-        this.con.query('SELECT * FROM runtime_monitors WHERE type=? AND location=? AND auth_id=?', [type, location, auth_id], function (err, result) {
+    RuntimeMonitorDAO.prototype.get = function (monitor_id, callback) {
+        this.con.query('SELECT * FROM runtime_monitors WHERE monitor_id=?', [monitor_id], function (err, result) {
+            result = result[0];
+            callback(err, RuntimeMonitor.tableToObject(result));
+        });
+    };
+
+    RuntimeMonitorDAO.prototype.getByMonitorInfo = function (type, location, callback) {
+        this.con.query('SELECT * FROM runtime_monitors WHERE type=? AND location=?', [type, location], function (err, result) {
             if (err) {
                 callback(err, null);
                 return;

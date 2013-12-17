@@ -5,6 +5,7 @@ var __extends = this.__extends || function (d, b) {
     d.prototype = new __();
 };
 var model = require('./model');
+var model_runtime_monitors = require('../model/runtime_monitors');
 var async = require('async');
 
 var RuntimeRawdata = (function () {
@@ -55,12 +56,22 @@ var RuntimeRawdataDAO = (function (_super) {
                 });
             },
             function (rawdata, monitor_id, next) {
-                _this.con.query('SELECT * FROM runtime_monitors WHERE monitor_id=?', [monitor_id], function (err, result) {
-                    rawdata.setMonitorInfo(result.type, result.location, result.auth_id);
+                var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(_this.con);
+                runtimeMonitorDAO.get(monitor_id, function (err, monitor) {
+                    rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
                     next(err, rawdata);
                 });
             }
         ], function (err, rawdata) {
+            callback(err, rawdata);
+        });
+    };
+
+    RuntimeRawdataDAO.prototype.getWithMonitorInfo = function (rawdata_id, monitor, callback) {
+        this.con.query('SELECT * FROM runtime_rawdata WHERE rawdata_id=?', [rawdata_id], function (err, result) {
+            result = result[0];
+            var rawdata = RuntimeRawdata.tableToObject(result);
+            rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
             callback(err, rawdata);
         });
     };

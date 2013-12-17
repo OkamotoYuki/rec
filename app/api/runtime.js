@@ -38,7 +38,7 @@ function pushRawData(params, callback) {
             });
         },
         function (next) {
-            runtimeMonitorDAO.get(params.type, params.location, params.auth_id, function (err, monitor) {
+            runtimeMonitorDAO.getByMonitorInfo(params.type, params.location, function (err, monitor) {
                 return next(err, monitor);
             });
         },
@@ -145,7 +145,37 @@ function getLatestData(params, callback) {
     if (!validate(params))
         return;
 
-    callback.onSuccess({ rawdata_id: 0, type: 'CpuUsage', location: 'AppServer', data: 1, auth_id: 'admin@gmail.com', timestamp: new Date().toString(), context: "dummy" });
+    var con = new db.Database();
+    var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(con);
+    var runtimeRawdataDAO = new model_runtime_rawdata.RuntimeRawdataDAO(con);
+    var timestamp = new Date();
+
+    async.waterfall([
+        function (next) {
+            con.begin(function (err, result) {
+                return next(err);
+            });
+        },
+        function (next) {
+            runtimeMonitorDAO.getByMonitorInfo(params.type, params.location, function (err, monitor) {
+                return next(err, monitor);
+            });
+        },
+        function (monitor, next) {
+            runtimeRawdataDAO.getWithMonitorInfo(monitor.latest_data_id, monitor, function (err, rawdata) {
+                return next(err, rawdata);
+            });
+        }
+    ], function (err, rawdata, next) {
+        if (err) {
+            con.rollback();
+            con.close();
+            callback.onFailure(err);
+            return;
+        }
+        con.close();
+        callback.onSuccess(rawdata);
+    });
 }
 exports.getLatestData = getLatestData;
 

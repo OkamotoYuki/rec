@@ -33,7 +33,7 @@ export function pushRawData(params: any, callback: type.Callback) {
 			con.begin((err, result) => next(err));
 		},
 		(next) => {
-			runtimeMonitorDAO.get(params.type, params.location, params.auth_id, (err: any, monitor: model_runtime_monitors.RuntimeMonitor) => next(err, monitor));
+			runtimeMonitorDAO.getByMonitorInfo(params.type, params.location, (err: any, monitor: model_runtime_monitors.RuntimeMonitor) => next(err, monitor));
 		},
 		(monitor: model_runtime_monitors.RuntimeMonitor, next) => {
 			if(monitor) {
@@ -118,8 +118,32 @@ export function getLatestData(params: any, callback: type.Callback) {
 	}
 	if(!validate(params)) return;
 
-	// TODO
-	callback.onSuccess({ rawdata_id: 0, type: 'CpuUsage', location: 'AppServer', data: 1, auth_id: 'admin@gmail.com', timestamp: new Date().toString(), context: "dummy" });    // FIXME
+	var con = new db.Database();
+	var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(con);
+	var runtimeRawdataDAO = new model_runtime_rawdata.RuntimeRawdataDAO(con);
+	var timestamp = new Date();
+
+	async.waterfall([
+		(next) => {
+			con.begin((err, result) => next(err));
+		},
+		(next) => {
+			runtimeMonitorDAO.getByMonitorInfo(params.type, params.location, (err: any, monitor: model_runtime_monitors.RuntimeMonitor) => next(err, monitor));
+		},
+		(monitor: model_runtime_monitors.RuntimeMonitor, next) => {
+			runtimeRawdataDAO.getWithMonitorInfo(monitor.latest_data_id, monitor, (err: any, rawdata: model_runtime_rawdata.RuntimeRawdata) => next(err, rawdata));
+		}
+	],
+	(err: any, rawdata: model_runtime_rawdata.RuntimeRawdata, next) => {
+		if(err) {
+			con.rollback();
+			con.close();
+			callback.onFailure(err);
+			return;
+		}
+		con.close();
+		callback.onSuccess(rawdata);
+	});
 }
 
 export function getRawDataList(params: any, callback: type.Callback) {

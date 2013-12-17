@@ -1,6 +1,7 @@
 ///<reference path='../d.ts/DefinitelyTyped/async/async.d.ts'/>
 
 import model = module('./model');
+import model_runtime_monitors = module('../model/runtime_monitors');
 var async = require('async');
 
 export interface InsertArg {
@@ -61,18 +62,28 @@ export class RuntimeRawdataDAO extends model.DAO {
 				);
 			},
 			(rawdata: RuntimeRawdata, monitor_id: number, next) => {
-				this.con.query('SELECT * FROM runtime_monitors WHERE monitor_id=?',
-					[monitor_id],
-					(err, result) => {
-						rawdata.setMonitorInfo(result.type, result.location, result.auth_id);
-						next(err, rawdata);
-					}
-				);
+				var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(this.con);
+				runtimeMonitorDAO.get(monitor_id, (err: any, monitor: model_runtime_monitors.RuntimeMonitor) => {
+					rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
+					next(err, rawdata);
+				});
 			}
 		],
 		(err: any, rawdata: RuntimeRawdata) => {
 			callback(err, rawdata);
 		});
+	}
+
+	getWithMonitorInfo(rawdata_id: number, monitor: model_runtime_monitors.RuntimeMonitor, callback: (err: any, rawdata: RuntimeRawdata)=>void): void {
+		this.con.query('SELECT * FROM runtime_rawdata WHERE rawdata_id=?',
+			[rawdata_id],
+			(err, result) => {
+				result = result[0];
+				var rawdata = RuntimeRawdata.tableToObject(result);
+				rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
+				callback(err, rawdata);
+			}
+		);
 	}
 
 }
