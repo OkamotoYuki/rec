@@ -7,11 +7,13 @@ export interface InsertArg {
 	type: string;
 	location: string;
 	auth_id: string;
+	begin_timestamp: Date;
+	latest_timestamp: Date;
 }
 
 export class RuntimeMonitor {
 
-	constructor(public monitor_id: number, public type: string, public location: string, public auth_id: string, public begin_timestamp: string, public latest_timestamp: string) {
+	constructor(public monitor_id: number, public type: string, public location: string, public auth_id: string, public begin_timestamp: Date, public latest_timestamp: Date) {
 	}
 
 	static tableToObject(row: any) {
@@ -23,14 +25,42 @@ export class RuntimeMonitor {
 export class RuntimeMonitorDAO extends model.DAO {
 
 	insert(params: InsertArg, callback: (err: any, monitor_id: number)=>void): void {
-		this.con.query('INSERT INTO runtime_monitors(type, location, auth_id) VALUES(?, ?, ?)',
-				[params.type, params.location, params.auth_id],
-				(err, result) => {
-					if(err) {
-						callback(err, null);
-					}
-					callback(err, result.monitor_id);
-				});
+		this.con.query('INSERT INTO runtime_monitors(type, location, auth_id, begin_timestamp, latest_timestamp) VALUES(?, ?, ?, ?, ?)',
+			[params.type, params.location, params.auth_id, params.begin_timestamp, params.latest_timestamp],
+			(err, result) => {
+				if(err) {
+					callback(err, null);
+				}
+				callback(err, result.insertId);
+			}
+		);
+	}
+
+	update(monitor_id: number, rawdata_id: number, latest_timestamp: Date, callback: (err: any) => void): void {
+		this.con.query('UPDATE runtime_monitors SET latest_data_id=?, latest_timestamp=? WHERE monitor_id=?',
+			[rawdata_id, latest_timestamp, monitor_id],
+			(err, result) => {
+				callback(err);
+			}
+		);
+	}
+
+	get(type: string, location: string, auth_id: string, callback: (err: any, monitor: RuntimeMonitor) => void): void {
+		this.con.query('SELECT * FROM runtime_monitors WHERE type=? AND location=? AND auth_id=?',
+			[type, location, auth_id],
+			(err, result) => {
+				if(err) {
+					callback(err, null);
+					return;
+				}
+				if(result.length == 0) {   // no such a monitor
+					callback(err, null);
+					return;
+				}
+				result = result[0];
+				callback(err, RuntimeMonitor.tableToObject(result));
+			}
+		);
 	}
 
 }

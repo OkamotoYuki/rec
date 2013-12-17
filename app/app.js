@@ -7,7 +7,7 @@ var path = require('path');
 
 exports.app = express();
 
-exports.app.set('port', process.env.PORT || 3000);
+exports.app.set('port', process.env.PORT || 3001);
 exports.app.set('views', __dirname + '/views');
 exports.app.set('view engine', 'jade');
 exports.app.use(express.favicon());

@@ -1,5 +1,9 @@
+var db = require('../db/db');
 
 var error = require('./error');
+var model_runtime_monitors = require('../model/runtime_monitors');
+var model_runtime_rawdata = require('../model/runtime_rawdata');
+var async = require('async');
 
 function pushRawData(params, callback) {
     function validate(params) {
@@ -22,7 +26,46 @@ function pushRawData(params, callback) {
     if (!validate(params))
         return;
 
-    callback.onSuccess({ rawdata_id: 0 });
+    var con = new db.Database();
+    var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(con);
+    var runtimeRawdataDAO = new model_runtime_rawdata.RuntimeRawdataDAO(con);
+    var timestamp = new Date();
+
+    async.waterfall([
+        function (next) {
+            runtimeMonitorDAO.get(params.type, params.location, params.auth_id, function (err, monitor) {
+                return next(err, monitor);
+            });
+        },
+        function (monitor, next) {
+            if (monitor) {
+                next(null, monitor.monitor_id);
+            } else {
+                params['begin_timestamp'] = timestamp;
+                params['latest_timestamp'] = timestamp;
+                runtimeMonitorDAO.insert(params, function (err, monitor_id) {
+                    return next(err, monitor_id);
+                });
+            }
+        },
+        function (monitor_id, next) {
+            runtimeRawdataDAO.insert({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, function (err, monitor_id, rawdata_id) {
+                return next(err, monitor_id, rawdata_id);
+            });
+        },
+        function (monitor_id, rawdata_id, next) {
+            runtimeMonitorDAO.update(monitor_id, rawdata_id, timestamp, function (err) {
+                return next(err, rawdata_id);
+            });
+        }
+    ], function (err, rawdata_id) {
+        con.close();
+        if (err) {
+            callback.onFailure(err);
+            return;
+        }
+        callback.onSuccess({ rawdata_id: rawdata_id });
+    });
 }
 exports.pushRawData = pushRawData;
 

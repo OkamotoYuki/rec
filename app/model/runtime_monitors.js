@@ -29,11 +29,32 @@ var RuntimeMonitorDAO = (function (_super) {
         _super.apply(this, arguments);
     }
     RuntimeMonitorDAO.prototype.insert = function (params, callback) {
-        this.con.query('INSERT INTO runtime_monitors(type, location, auth_id) VALUES(?, ?, ?)', [params.type, params.location, params.auth_id], function (err, result) {
+        this.con.query('INSERT INTO runtime_monitors(type, location, auth_id, begin_timestamp, latest_timestamp) VALUES(?, ?, ?, ?, ?)', [params.type, params.location, params.auth_id, params.begin_timestamp, params.latest_timestamp], function (err, result) {
             if (err) {
                 callback(err, null);
             }
-            callback(err, result.monitor_id);
+            callback(err, result.insertId);
+        });
+    };
+
+    RuntimeMonitorDAO.prototype.update = function (monitor_id, rawdata_id, latest_timestamp, callback) {
+        this.con.query('UPDATE runtime_monitors SET latest_data_id=?, latest_timestamp=? WHERE monitor_id=?', [rawdata_id, latest_timestamp, monitor_id], function (err, result) {
+            callback(err);
+        });
+    };
+
+    RuntimeMonitorDAO.prototype.get = function (type, location, auth_id, callback) {
+        this.con.query('SELECT * FROM runtime_monitors WHERE type=? AND location=? AND auth_id=?', [type, location, auth_id], function (err, result) {
+            if (err) {
+                callback(err, null);
+                return;
+            }
+            if (result.length == 0) {
+                callback(err, null);
+                return;
+            }
+            result = result[0];
+            callback(err, RuntimeMonitor.tableToObject(result));
         });
     };
     return RuntimeMonitorDAO;
