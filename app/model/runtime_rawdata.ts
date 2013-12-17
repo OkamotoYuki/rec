@@ -1,7 +1,7 @@
 ///<reference path='../d.ts/DefinitelyTyped/async/async.d.ts'/>
 
 import model = module('./model');
-import model_runtime_monitors = module('../model/runtime_monitors');
+import model_runtime_monitors = module('./runtime_monitors');
 var async = require('async');
 
 export interface InsertArg {

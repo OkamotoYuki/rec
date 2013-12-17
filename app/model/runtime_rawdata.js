@@ -5,7 +5,7 @@ var __extends = this.__extends || function (d, b) {
     d.prototype = new __();
 };
 var model = require('./model');
-var model_runtime_monitors = require('../model/runtime_monitors');
+var model_runtime_monitors = require('./runtime_monitors');
 var async = require('async');
 
 var RuntimeRawdata = (function () {
