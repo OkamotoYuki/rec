@@ -1,8 +1,8 @@
 var db = require('../db/db');
 
 var error = require('./error');
-var model_runtime_monitors = require('../model/runtime_monitors');
-var model_runtime_rawdata = require('../model/runtime_rawdata');
+var model_assurenote_monitor_items = require('../model/assurenote_monitor_items');
+var model_assurenote_monitor_rawdata = require('../model/assurenote_monitor_rawdata');
 var async = require('async');
 
 function pushRawData(params, callback) {
@@ -27,8 +27,8 @@ function pushRawData(params, callback) {
         return;
 
     var con = new db.Database();
-    var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(con);
-    var runtimeRawdataDAO = new model_runtime_rawdata.RuntimeRawdataDAO(con);
+    var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
+    var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
     var timestamp = new Date();
 
     async.waterfall([
@@ -38,7 +38,7 @@ function pushRawData(params, callback) {
             });
         },
         function (next) {
-            runtimeMonitorDAO.getByMonitorInfo(params.type, params.location, function (err, monitor) {
+            monitorItemDAO.getByMonitorInfo(params.type, params.location, function (err, monitor) {
                 return next(err, monitor);
             });
         },
@@ -48,18 +48,18 @@ function pushRawData(params, callback) {
             } else {
                 params['begin_timestamp'] = timestamp;
                 params['latest_timestamp'] = timestamp;
-                runtimeMonitorDAO.insert(params, function (err, monitor_id) {
+                monitorItemDAO.insert(params, function (err, monitor_id) {
                     return next(err, monitor_id);
                 });
             }
         },
         function (monitor_id, next) {
-            runtimeRawdataDAO.insert({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, function (err, monitor_id, rawdata_id) {
+            monitorRawdataDAO.insert({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, function (err, monitor_id, rawdata_id) {
                 return next(err, monitor_id, rawdata_id);
             });
         },
         function (monitor_id, rawdata_id, next) {
-            runtimeMonitorDAO.update(monitor_id, rawdata_id, timestamp, function (err) {
+            monitorItemDAO.update(monitor_id, rawdata_id, timestamp, function (err) {
                 return next(err, rawdata_id);
             });
         },
@@ -97,7 +97,7 @@ function getRawData(params, callback) {
         return;
 
     var con = new db.Database();
-    var runtimeRawdataDAO = new model_runtime_rawdata.RuntimeRawdataDAO(con);
+    var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
 
     async.waterfall([
         function (next) {
@@ -106,7 +106,7 @@ function getRawData(params, callback) {
             });
         },
         function (next) {
-            runtimeRawdataDAO.get(params.rawdata_id, function (err, rawdata) {
+            monitorRawdataDAO.get(params.rawdata_id, function (err, rawdata) {
                 return next(err, rawdata);
             });
         },
@@ -146,8 +146,8 @@ function getLatestData(params, callback) {
         return;
 
     var con = new db.Database();
-    var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(con);
-    var runtimeRawdataDAO = new model_runtime_rawdata.RuntimeRawdataDAO(con);
+    var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
+    var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
     var timestamp = new Date();
 
     async.waterfall([
@@ -157,12 +157,12 @@ function getLatestData(params, callback) {
             });
         },
         function (next) {
-            runtimeMonitorDAO.getByMonitorInfo(params.type, params.location, function (err, monitor) {
+            monitorItemDAO.getByMonitorInfo(params.type, params.location, function (err, monitor) {
                 return next(err, monitor);
             });
         },
         function (monitor, next) {
-            runtimeRawdataDAO.getWithMonitorInfo(monitor.latest_data_id, monitor, function (err, rawdata) {
+            monitorRawdataDAO.getWithMonitorInfo(monitor.latest_data_id, monitor, function (err, rawdata) {
                 return next(err, rawdata);
             });
         }

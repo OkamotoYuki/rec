@@ -5,11 +5,11 @@ routes/api.ts
 api/error.ts
 api/type.ts
 api/jsonrpc.ts
-api/runtime.ts
+api/assurenote.ts
 api/dshell.ts
 db/db.ts
 model/model.ts
-model/runtime_rawdata.ts
-model/runtime_monitors.ts
+model/assurenote_monitor_items.ts
+model/assurenote_monitor_rawdata.ts
 model/dshell_test_items.ts
 model/dshell_test_results.ts

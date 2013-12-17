@@ -1,7 +1,7 @@
 ///<reference path='../d.ts/DefinitelyTyped/async/async.d.ts'/>
 
 import model = module('./model');
-import model_runtime_monitors = module('./runtime_monitors');
+import model_assurenote_monitor_items = module('./assurenote_monitor_items');
 var async = require('async');
 
 export interface InsertArg {
@@ -11,7 +11,7 @@ export interface InsertArg {
 	timestamp: Date;
 }
 
-export class RuntimeRawdata {
+export class MonitorRawdata {
 
 	type: string;
 	location: string;
@@ -24,7 +24,7 @@ export class RuntimeRawdata {
 	}
 
 	static tableToObject(row: any) {
-		return new RuntimeRawdata(row.rawdata_id, row.data, row.context, row.timestamp);
+		return new MonitorRawdata(row.rawdata_id, row.data, row.context, row.timestamp);
 	}
 
 	setMonitorInfo(type: string, location: string, auth_id: string): void {
@@ -35,10 +35,10 @@ export class RuntimeRawdata {
 
 }
 
-export class RuntimeRawdataDAO extends model.DAO {
+export class MonitorRawdataDAO extends model.DAO {
 
 	insert(params: InsertArg, callback: (err: any, monitor_id: number, rawdata_id: number)=>void): void {
-		this.con.query('INSERT INTO runtime_rawdata(monitor_id, data, context, timestamp) VALUES(?, ?, ?, ?)',
+		this.con.query('INSERT INTO assurenote_monitor_rawdata(monitor_id, data, context, timestamp) VALUES(?, ?, ?, ?)',
 			[params.monitor_id, params.data, params.context ? params.context : '', params.timestamp],
 			(err, result) => {
 				if(err) {
@@ -50,36 +50,36 @@ export class RuntimeRawdataDAO extends model.DAO {
 		);
 	}
 
-	get(rawdata_id: number, callback: (err: any, rawdata: RuntimeRawdata)=>void): void {
+	get(rawdata_id: number, callback: (err: any, rawdata: MonitorRawdata)=>void): void {
 		async.waterfall([
 			(next) => {
-				this.con.query('SELECT * FROM runtime_rawdata WHERE rawdata_id=?',
+				this.con.query('SELECT * FROM assurenote_monitor_rawdata WHERE rawdata_id=?',
 					[rawdata_id],
 					(err, result) => {
 						result = result[0];
-						next(err, RuntimeRawdata.tableToObject(result), result.monitor_id);
+						next(err, MonitorRawdata.tableToObject(result), result.monitor_id);
 					}
 				);
 			},
-			(rawdata: RuntimeRawdata, monitor_id: number, next) => {
-				var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(this.con);
-				runtimeMonitorDAO.get(monitor_id, (err: any, monitor: model_runtime_monitors.RuntimeMonitor) => {
+			(rawdata: MonitorRawdata, monitor_id: number, next) => {
+				var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(this.con);
+				monitorItemDAO.get(monitor_id, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => {
 					rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
 					next(err, rawdata);
 				});
 			}
 		],
-		(err: any, rawdata: RuntimeRawdata) => {
+		(err: any, rawdata: MonitorRawdata) => {
 			callback(err, rawdata);
 		});
 	}
 
-	getWithMonitorInfo(rawdata_id: number, monitor: model_runtime_monitors.RuntimeMonitor, callback: (err: any, rawdata: RuntimeRawdata)=>void): void {
-		this.con.query('SELECT * FROM runtime_rawdata WHERE rawdata_id=?',
+	getWithMonitorInfo(rawdata_id: number, monitor: model_assurenote_monitor_items.MonitorItem, callback: (err: any, rawdata: MonitorRawdata)=>void): void {
+		this.con.query('SELECT * FROM assurenote_monitor_rawdata WHERE rawdata_id=?',
 			[rawdata_id],
 			(err, result) => {
 				result = result[0];
-				var rawdata = RuntimeRawdata.tableToObject(result);
+				var rawdata = MonitorRawdata.tableToObject(result);
 				rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
 				callback(err, rawdata);
 			}

@@ -7,11 +7,11 @@ CREATE SCHEMA IF NOT EXISTS `rec` DEFAULT CHARACTER SET utf8 COLLATE utf8_genera
 USE `rec` ;
 
 -- -----------------------------------------------------
--- Table `rec`.`runtime_monitors`
+-- Table `rec`.`assurenote_monitor_items`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `rec`.`runtime_monitors` ;
+DROP TABLE IF EXISTS `rec`.`assurenote_monitor_items` ;
 
-CREATE TABLE IF NOT EXISTS `rec`.`runtime_monitors` (
+CREATE TABLE IF NOT EXISTS `rec`.`assurenote_monitor_items` (
   `monitor_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `type` VARCHAR(45) NOT NULL,
   `location` VARCHAR(45) NOT NULL,
@@ -26,11 +26,11 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `rec`.`runtime_rawdata`
+-- Table `rec`.`assurenote_monitor_rawdata`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `rec`.`runtime_rawdata` ;
+DROP TABLE IF EXISTS `rec`.`assurenote_monitor_rawdata` ;
 
-CREATE TABLE IF NOT EXISTS `rec`.`runtime_rawdata` (
+CREATE TABLE IF NOT EXISTS `rec`.`assurenote_monitor_rawdata` (
   `rawdata_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `monitor_id` INT UNSIGNED NOT NULL,
   `data` INT NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `rec`.`runtime_rawdata` (
   INDEX `fk_rawdata_monitors_idx` (`monitor_id` ASC),
   CONSTRAINT `fk_rawdata_monitors`
     FOREIGN KEY (`monitor_id`)
-    REFERENCES `rec`.`runtime_monitors` (`monitor_id`)
+    REFERENCES `rec`.`assurenote_monitor_items` (`monitor_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
