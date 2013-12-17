@@ -33,6 +33,11 @@ function pushRawData(params, callback) {
 
     async.waterfall([
         function (next) {
+            con.begin(function (err, result) {
+                return next(err);
+            });
+        },
+        function (next) {
             runtimeMonitorDAO.get(params.type, params.location, params.auth_id, function (err, monitor) {
                 return next(err, monitor);
             });
@@ -57,13 +62,20 @@ function pushRawData(params, callback) {
             runtimeMonitorDAO.update(monitor_id, rawdata_id, timestamp, function (err) {
                 return next(err, rawdata_id);
             });
+        },
+        function (rawdata_id, next) {
+            con.commit(function (err, result) {
+                return next(err, rawdata_id);
+            });
         }
     ], function (err, rawdata_id) {
-        con.close();
         if (err) {
+            con.rollback();
+            con.close();
             callback.onFailure(err);
             return;
         }
+        con.close();
         callback.onSuccess({ rawdata_id: rawdata_id });
     });
 }
@@ -84,7 +96,35 @@ function getRawData(params, callback) {
     if (!validate(params))
         return;
 
-    callback.onSuccess({ rawdata_id: 0, type: 'CpuUsage', location: 'AppServer', data: 1, auth_id: 'admin@gmail.com', timestamp: new Date().toString(), context: "dummy" });
+    var con = new db.Database();
+    var runtimeRawdataDAO = new model_runtime_rawdata.RuntimeRawdataDAO(con);
+
+    async.waterfall([
+        function (next) {
+            con.begin(function (err, result) {
+                return next(err);
+            });
+        },
+        function (next) {
+            runtimeRawdataDAO.get(params.rawdata_id, function (err, rawdata) {
+                return next(err, rawdata);
+            });
+        },
+        function (rawdata, next) {
+            con.commit(function (err, result) {
+                return next(err, rawdata);
+            });
+        }
+    ], function (err, rawdata, next) {
+        if (err) {
+            con.rollback();
+            con.close();
+            callback.onFailure(err);
+            return;
+        }
+        con.close();
+        callback.onSuccess(rawdata);
+    });
 }
 exports.getRawData = getRawData;
 

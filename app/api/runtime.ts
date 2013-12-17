@@ -30,6 +30,9 @@ export function pushRawData(params: any, callback: type.Callback) {
 
 	async.waterfall([
 		(next) => {
+			con.begin((err, result) => next(err));
+		},
+		(next) => {
 			runtimeMonitorDAO.get(params.type, params.location, params.auth_id, (err: any, monitor: model_runtime_monitors.RuntimeMonitor) => next(err, monitor));
 		},
 		(monitor: model_runtime_monitors.RuntimeMonitor, next) => {
@@ -47,13 +50,18 @@ export function pushRawData(params: any, callback: type.Callback) {
 		},
 		(monitor_id: number, rawdata_id: number, next) => {
 			runtimeMonitorDAO.update(monitor_id, rawdata_id, timestamp, (err: any) => next(err, rawdata_id));
+		},
+		(rawdata_id: number, next) => {
+			con.commit((err, result) => next(err, rawdata_id));
 		}
 	], (err: any, rawdata_id: number) => {
-		con.close();
 		if(err) {
+			con.rollback();
+			con.close();
 			callback.onFailure(err);
 			return;
 		}
+		con.close();
 		callback.onSuccess({ rawdata_id: rawdata_id });
 	});
 }
@@ -70,8 +78,31 @@ export function getRawData(params: any, callback: type.Callback) {
 	}
 	if(!validate(params)) return;
 
-	// TODO
-	callback.onSuccess({ rawdata_id: 0, type: 'CpuUsage', location: 'AppServer', data: 1, auth_id: 'admin@gmail.com', timestamp: new Date().toString(), context: "dummy" });    // FIXME
+	var con = new db.Database();
+	var runtimeRawdataDAO = new model_runtime_rawdata.RuntimeRawdataDAO(con);
+
+	async.waterfall([
+		(next) => {
+			con.begin((err, result) => next(err));
+		},
+		(next) => {
+			runtimeRawdataDAO.get(params.rawdata_id, (err: any, rawdata: model_runtime_rawdata.RuntimeRawdata) => next(err, rawdata));
+		},
+		(rawdata: model_runtime_rawdata.RuntimeRawdata, next) => {
+			con.commit((err, result) => next(err, rawdata));
+		}
+	],
+	(err: any, rawdata: model_runtime_rawdata.RuntimeRawdata, next) => {
+		if(err) {
+			con.rollback();
+			con.close();
+			callback.onFailure(err);
+			return;
+		}
+		con.close();
+		callback.onSuccess(rawdata);
+	});
+
 }
 
 export function getLatestData(params: any, callback: type.Callback) {
