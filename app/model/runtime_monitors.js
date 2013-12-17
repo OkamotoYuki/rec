@@ -38,8 +38,8 @@ var RuntimeMonitorDAO = (function (_super) {
         });
     };
 
-    RuntimeMonitorDAO.prototype.update = function (monitor_id, rawdata_id, latest_timestamp, callback) {
-        this.con.query('UPDATE runtime_monitors SET latest_data_id=?, latest_timestamp=? WHERE monitor_id=?', [rawdata_id, latest_timestamp, monitor_id], function (err, result) {
+    RuntimeMonitorDAO.prototype.update = function (monitor_id, latest_data_id, latest_timestamp, callback) {
+        this.con.query('UPDATE runtime_monitors SET latest_data_id=?, latest_timestamp=? WHERE monitor_id=?', [latest_data_id, latest_timestamp, monitor_id], function (err, result) {
             callback(err);
         });
     };

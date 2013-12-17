@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS `rec`.`dshell_test_items` (
   `host` VARCHAR(45) NOT NULL,
   `filepath` VARCHAR(45) NOT NULL,
   `funcname` VARCHAR(45) NOT NULL,
-  `latest_version` VARCHAR(45) NOT NULL,
+  `latest_version` INT NOT NULL,
   PRIMARY KEY (`test_id`),
   UNIQUE INDEX `testid_UNIQUE` (`test_id` ASC))
 ENGINE = InnoDB;

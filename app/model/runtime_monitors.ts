@@ -36,9 +36,9 @@ export class RuntimeMonitorDAO extends model.DAO {
 		);
 	}
 
-	update(monitor_id: number, rawdata_id: number, latest_timestamp: Date, callback: (err: any) => void): void {
+	update(monitor_id: number, latest_data_id: number, latest_timestamp: Date, callback: (err: any) => void): void {
 		this.con.query('UPDATE runtime_monitors SET latest_data_id=?, latest_timestamp=? WHERE monitor_id=?',
-			[rawdata_id, latest_timestamp, monitor_id],
+			[latest_data_id, latest_timestamp, monitor_id],
 			(err, result) => {
 				callback(err);
 			}
