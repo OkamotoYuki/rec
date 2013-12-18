@@ -165,6 +165,11 @@ function getLatestData(params, callback) {
             monitorRawdataDAO.getRawdataWithMonitorInfo(monitor.latest_data_id, monitor, function (err, rawdata) {
                 return next(err, rawdata);
             });
+        },
+        function (rawdata, next) {
+            con.commit(function (err, result) {
+                return next(err, rawdata);
+            });
         }
     ], function (err, rawdata, next) {
         if (err) {
@@ -201,7 +206,35 @@ function getRawDataList(params, callback) {
 exports.getRawDataList = getRawDataList;
 
 function getMonitorList(params, callback) {
-    callback.onSuccess([]);
+    var con = new db.Database();
+    var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
+
+    async.waterfall([
+        function (next) {
+            con.begin(function (err, result) {
+                return next(err);
+            });
+        },
+        function (next) {
+            monitorItemDAO.getItemList(function (err, monitorList) {
+                return next(err, monitorList);
+            });
+        },
+        function (monitorList, next) {
+            con.commit(function (err, result) {
+                return next(err, monitorList);
+            });
+        }
+    ], function (err, monitorList, next) {
+        if (err) {
+            con.rollback();
+            con.close();
+            callback.onFailure(err);
+            return;
+        }
+        con.close();
+        callback.onSuccess(monitorList);
+    });
 }
 exports.getMonitorList = getMonitorList;
 

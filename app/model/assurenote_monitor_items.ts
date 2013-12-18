@@ -73,4 +73,21 @@ export class MonitorItemDAO extends model.DAO {
 		);
 	}
 
+	getItemList(callback: (err: any, monitorList: MonitorItem[]) => void): void {
+		this.con.query('SELECT * FROM assurenote_monitor_items',
+			(err, result) => {
+				if(err) {
+					callback(err, null);
+				}
+
+				var monitorList: MonitorItem[] = [];
+				for(var i: number = 0; i < result.length; i++) {
+					monitorList.push(MonitorItem.tableToObject(result[i]));
+				}
+
+				callback(err, monitorList);
+			}
+		);
+	}
+
 }

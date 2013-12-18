@@ -65,6 +65,21 @@ var MonitorItemDAO = (function (_super) {
             callback(err, MonitorItem.tableToObject(result));
         });
     };
+
+    MonitorItemDAO.prototype.getItemList = function (callback) {
+        this.con.query('SELECT * FROM assurenote_monitor_items', function (err, result) {
+            if (err) {
+                callback(err, null);
+            }
+
+            var monitorList = [];
+            for (var i = 0; i < result.length; i++) {
+                monitorList.push(MonitorItem.tableToObject(result[i]));
+            }
+
+            callback(err, monitorList);
+        });
+    };
     return MonitorItemDAO;
 })(model.DAO);
 exports.MonitorItemDAO = MonitorItemDAO;

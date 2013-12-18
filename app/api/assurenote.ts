@@ -132,6 +132,9 @@ export function getLatestData(params: any, callback: type.Callback) {
 		},
 		(monitor: model_assurenote_monitor_items.MonitorItem, next) => {
 			monitorRawdataDAO.getRawdataWithMonitorInfo(monitor.latest_data_id, monitor, (err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata) => next(err, rawdata));
+		},
+		(rawdata: model_assurenote_monitor_rawdata.MonitorRawdata, next) => {
+			con.commit((err, result) => next(err, rawdata));
 		}
 	],
 	(err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata, next) => {
@@ -164,6 +167,29 @@ export function getRawDataList(params: any, callback: type.Callback) {
 }
 
 export function getMonitorList(params: any, callback: type.Callback) {
-	// TODO
-	callback.onSuccess([]);    // FIXME
+	var con = new db.Database();
+	var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
+
+	async.waterfall([
+		(next) => {
+			con.begin((err, result) => next(err));
+		},
+		(next) => {
+			monitorItemDAO.getItemList((err: any, monitorList: model_assurenote_monitor_items.MonitorItem[]) => next(err, monitorList));
+		},
+		(monitorList: model_assurenote_monitor_items.MonitorItem[], next) => {
+			con.commit((err, result) => next(err, monitorList));
+		}
+	],
+	(err: any, monitorList: model_assurenote_monitor_items.MonitorItem[], next) => {
+		if(err) {
+			con.rollback();
+			con.close();
+			callback.onFailure(err);
+			return;
+		}
+		con.close();
+		callback.onSuccess(monitorList);
+	});
+
 }
