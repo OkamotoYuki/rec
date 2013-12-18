@@ -33,7 +33,7 @@ export function pushRawData(params: any, callback: type.Callback) {
 			con.begin((err, result) => next(err));
 		},
 		(next) => {
-			monitorItemDAO.getByMonitorInfo(params.type, params.location, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => next(err, monitor));
+			monitorItemDAO.selectItem(params.type, params.location, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => next(err, monitor));
 		},
 		(monitor: model_assurenote_monitor_items.MonitorItem, next) => {
 			if(monitor) {
@@ -42,14 +42,14 @@ export function pushRawData(params: any, callback: type.Callback) {
 			else {
 				params['begin_timestamp'] = timestamp;
 				params['latest_timestamp'] = timestamp;
-				monitorItemDAO.insert(params, (err: any, monitor_id: number) => next(err, monitor_id));
+				monitorItemDAO.insertItem(params, (err: any, monitor_id: number) => next(err, monitor_id));
 			}
 		},
 		(monitor_id: number, next) => {
-			monitorRawdataDAO.insert({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, (err: any, monitor_id: number, rawdata_id: number) => next(err, monitor_id, rawdata_id));
+			monitorRawdataDAO.insertRawdata({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, (err: any, monitor_id: number, rawdata_id: number) => next(err, monitor_id, rawdata_id));
 		},
 		(monitor_id: number, rawdata_id: number, next) => {
-			monitorItemDAO.update(monitor_id, rawdata_id, timestamp, (err: any) => next(err, rawdata_id));
+			monitorItemDAO.updateItem(monitor_id, rawdata_id, timestamp, (err: any) => next(err, rawdata_id));
 		},
 		(rawdata_id: number, next) => {
 			con.commit((err, result) => next(err, rawdata_id));
@@ -86,7 +86,7 @@ export function getRawData(params: any, callback: type.Callback) {
 			con.begin((err, result) => next(err));
 		},
 		(next) => {
-			monitorRawdataDAO.get(params.rawdata_id, (err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata) => next(err, rawdata));
+			monitorRawdataDAO.getRawdata(params.rawdata_id, (err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata) => next(err, rawdata));
 		},
 		(rawdata: model_assurenote_monitor_rawdata.MonitorRawdata, next) => {
 			con.commit((err, result) => next(err, rawdata));
@@ -128,10 +128,10 @@ export function getLatestData(params: any, callback: type.Callback) {
 			con.begin((err, result) => next(err));
 		},
 		(next) => {
-			monitorItemDAO.getByMonitorInfo(params.type, params.location, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => next(err, monitor));
+			monitorItemDAO.selectItem(params.type, params.location, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => next(err, monitor));
 		},
 		(monitor: model_assurenote_monitor_items.MonitorItem, next) => {
-			monitorRawdataDAO.getWithMonitorInfo(monitor.latest_data_id, monitor, (err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata) => next(err, rawdata));
+			monitorRawdataDAO.getRawdataWithMonitorInfo(monitor.latest_data_id, monitor, (err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata) => next(err, rawdata));
 		}
 	],
 	(err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata, next) => {

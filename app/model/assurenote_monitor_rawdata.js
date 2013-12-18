@@ -36,7 +36,7 @@ var MonitorRawdataDAO = (function (_super) {
     function MonitorRawdataDAO() {
         _super.apply(this, arguments);
     }
-    MonitorRawdataDAO.prototype.insert = function (params, callback) {
+    MonitorRawdataDAO.prototype.insertRawdata = function (params, callback) {
         this.con.query('INSERT INTO assurenote_monitor_rawdata(monitor_id, data, context, timestamp) VALUES(?, ?, ?, ?)', [params.monitor_id, params.data, params.context ? params.context : '', params.timestamp], function (err, result) {
             if (err) {
                 callback(err, params.monitor_id, null);
@@ -46,8 +46,17 @@ var MonitorRawdataDAO = (function (_super) {
         });
     };
 
-    MonitorRawdataDAO.prototype.get = function (rawdata_id, callback) {
+    MonitorRawdataDAO.prototype._fillRawdataWithMonitorInfo = function (rawdata, monitor_id, callback) {
+        var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(this.con);
+        monitorItemDAO.getItem(monitor_id, function (err, monitor) {
+            rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
+            callback(err, rawdata);
+        });
+    };
+
+    MonitorRawdataDAO.prototype.getRawdata = function (rawdata_id, callback) {
         var _this = this;
+        var self = this;
         async.waterfall([
             function (next) {
                 _this.con.query('SELECT * FROM assurenote_monitor_rawdata WHERE rawdata_id=?', [rawdata_id], function (err, result) {
@@ -56,18 +65,14 @@ var MonitorRawdataDAO = (function (_super) {
                 });
             },
             function (rawdata, monitor_id, next) {
-                var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(_this.con);
-                monitorItemDAO.get(monitor_id, function (err, monitor) {
-                    rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
-                    next(err, rawdata);
-                });
+                self._fillRawdataWithMonitorInfo(rawdata, monitor_id, next);
             }
         ], function (err, rawdata) {
             callback(err, rawdata);
         });
     };
 
-    MonitorRawdataDAO.prototype.getWithMonitorInfo = function (rawdata_id, monitor, callback) {
+    MonitorRawdataDAO.prototype.getRawdataWithMonitorInfo = function (rawdata_id, monitor, callback) {
         this.con.query('SELECT * FROM assurenote_monitor_rawdata WHERE rawdata_id=?', [rawdata_id], function (err, result) {
             result = result[0];
             var rawdata = MonitorRawdata.tableToObject(result);

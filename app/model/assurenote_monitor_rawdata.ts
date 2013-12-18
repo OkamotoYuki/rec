@@ -37,7 +37,7 @@ export class MonitorRawdata {
 
 export class MonitorRawdataDAO extends model.DAO {
 
-	insert(params: InsertArg, callback: (err: any, monitor_id: number, rawdata_id: number)=>void): void {
+	insertRawdata(params: InsertArg, callback: (err: any, monitor_id: number, rawdata_id: number)=>void): void {
 		this.con.query('INSERT INTO assurenote_monitor_rawdata(monitor_id, data, context, timestamp) VALUES(?, ?, ?, ?)',
 			[params.monitor_id, params.data, params.context ? params.context : '', params.timestamp],
 			(err, result) => {
@@ -50,7 +50,16 @@ export class MonitorRawdataDAO extends model.DAO {
 		);
 	}
 
-	get(rawdata_id: number, callback: (err: any, rawdata: MonitorRawdata)=>void): void {
+	_fillRawdataWithMonitorInfo(rawdata: MonitorRawdata, monitor_id: number, callback: (err: any, rawdata: MonitorRawdata) => void): void {
+		var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(this.con);
+		monitorItemDAO.getItem(monitor_id, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => {
+			rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
+			callback(err, rawdata);
+		});
+	}
+
+	getRawdata(rawdata_id: number, callback: (err: any, rawdata: MonitorRawdata)=>void): void {
+		var self = this;
 		async.waterfall([
 			(next) => {
 				this.con.query('SELECT * FROM assurenote_monitor_rawdata WHERE rawdata_id=?',
@@ -62,11 +71,7 @@ export class MonitorRawdataDAO extends model.DAO {
 				);
 			},
 			(rawdata: MonitorRawdata, monitor_id: number, next) => {
-				var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(this.con);
-				monitorItemDAO.get(monitor_id, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => {
-					rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
-					next(err, rawdata);
-				});
+				self._fillRawdataWithMonitorInfo(rawdata, monitor_id, next);
 			}
 		],
 		(err: any, rawdata: MonitorRawdata) => {
@@ -74,7 +79,7 @@ export class MonitorRawdataDAO extends model.DAO {
 		});
 	}
 
-	getWithMonitorInfo(rawdata_id: number, monitor: model_assurenote_monitor_items.MonitorItem, callback: (err: any, rawdata: MonitorRawdata)=>void): void {
+	getRawdataWithMonitorInfo(rawdata_id: number, monitor: model_assurenote_monitor_items.MonitorItem, callback: (err: any, rawdata: MonitorRawdata)=>void): void {
 		this.con.query('SELECT * FROM assurenote_monitor_rawdata WHERE rawdata_id=?',
 			[rawdata_id],
 			(err, result) => {

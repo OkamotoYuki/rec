@@ -24,7 +24,7 @@ export class MonitorItem {
 
 export class MonitorItemDAO extends model.DAO {
 
-	insert(params: InsertArg, callback: (err: any, monitor_id: number)=>void): void {
+	insertItem(params: InsertArg, callback: (err: any, monitor_id: number)=>void): void {
 		this.con.query('INSERT INTO assurenote_monitor_items(type, location, auth_id, begin_timestamp, latest_timestamp) VALUES(?, ?, ?, ?, ?)',
 			[params.type, params.location, params.auth_id, params.begin_timestamp, params.latest_timestamp],
 			(err, result) => {
@@ -36,7 +36,7 @@ export class MonitorItemDAO extends model.DAO {
 		);
 	}
 
-	update(monitor_id: number, latest_data_id: number, latest_timestamp: Date, callback: (err: any) => void): void {
+	updateItem(monitor_id: number, latest_data_id: number, latest_timestamp: Date, callback: (err: any) => void): void {
 		this.con.query('UPDATE assurenote_monitor_items SET latest_data_id=?, latest_timestamp=? WHERE monitor_id=?',
 			[latest_data_id, latest_timestamp, monitor_id],
 			(err, result) => {
@@ -45,7 +45,7 @@ export class MonitorItemDAO extends model.DAO {
 		);
 	}
 
-	get(monitor_id: number, callback: (err: any, monitor: MonitorItem) => void): void {
+	getItem(monitor_id: number, callback: (err: any, monitor: MonitorItem) => void): void {
 		this.con.query('SELECT * FROM assurenote_monitor_items WHERE monitor_id=?',
 			[monitor_id],
 			(err, result) => {
@@ -55,7 +55,7 @@ export class MonitorItemDAO extends model.DAO {
 		);
 	}
 
-	getByMonitorInfo(type: string, location: string, callback: (err: any, monitor: MonitorItem) => void): void {
+	selectItem(type: string, location: string, callback: (err: any, monitor: MonitorItem) => void): void {
 		this.con.query('SELECT * FROM assurenote_monitor_items WHERE type=? AND location=?',
 			[type, location],
 			(err, result) => {

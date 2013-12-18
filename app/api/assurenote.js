@@ -38,7 +38,7 @@ function pushRawData(params, callback) {
             });
         },
         function (next) {
-            monitorItemDAO.getByMonitorInfo(params.type, params.location, function (err, monitor) {
+            monitorItemDAO.selectItem(params.type, params.location, function (err, monitor) {
                 return next(err, monitor);
             });
         },
@@ -48,18 +48,18 @@ function pushRawData(params, callback) {
             } else {
                 params['begin_timestamp'] = timestamp;
                 params['latest_timestamp'] = timestamp;
-                monitorItemDAO.insert(params, function (err, monitor_id) {
+                monitorItemDAO.insertItem(params, function (err, monitor_id) {
                     return next(err, monitor_id);
                 });
             }
         },
         function (monitor_id, next) {
-            monitorRawdataDAO.insert({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, function (err, monitor_id, rawdata_id) {
+            monitorRawdataDAO.insertRawdata({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, function (err, monitor_id, rawdata_id) {
                 return next(err, monitor_id, rawdata_id);
             });
         },
         function (monitor_id, rawdata_id, next) {
-            monitorItemDAO.update(monitor_id, rawdata_id, timestamp, function (err) {
+            monitorItemDAO.updateItem(monitor_id, rawdata_id, timestamp, function (err) {
                 return next(err, rawdata_id);
             });
         },
@@ -106,7 +106,7 @@ function getRawData(params, callback) {
             });
         },
         function (next) {
-            monitorRawdataDAO.get(params.rawdata_id, function (err, rawdata) {
+            monitorRawdataDAO.getRawdata(params.rawdata_id, function (err, rawdata) {
                 return next(err, rawdata);
             });
         },
@@ -157,12 +157,12 @@ function getLatestData(params, callback) {
             });
         },
         function (next) {
-            monitorItemDAO.getByMonitorInfo(params.type, params.location, function (err, monitor) {
+            monitorItemDAO.selectItem(params.type, params.location, function (err, monitor) {
                 return next(err, monitor);
             });
         },
         function (monitor, next) {
-            monitorRawdataDAO.getWithMonitorInfo(monitor.latest_data_id, monitor, function (err, rawdata) {
+            monitorRawdataDAO.getRawdataWithMonitorInfo(monitor.latest_data_id, monitor, function (err, rawdata) {
                 return next(err, rawdata);
             });
         }
