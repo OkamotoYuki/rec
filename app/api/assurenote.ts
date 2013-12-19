@@ -22,7 +22,6 @@ export function pushRawData(params: any, callback: type.Callback) {
 	}
 	if(!validate(params)) return;
 
-	// TODO
 	var con = new db.Database();
 	var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
 	var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
@@ -46,7 +45,7 @@ export function pushRawData(params: any, callback: type.Callback) {
 			}
 		},
 		(monitor_id: number, next) => {
-			monitorRawdataDAO.insertRawdata({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, (err: any, monitor_id: number, rawdata_id: number) => next(err, monitor_id, rawdata_id));
+			monitorRawdataDAO.insertRawdata({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, (err: any, rawdata_id: number) => next(err, monitor_id, rawdata_id));
 		},
 		(monitor_id: number, rawdata_id: number, next) => {
 			monitorItemDAO.updateItem(monitor_id, rawdata_id, timestamp, (err: any) => next(err, rawdata_id));

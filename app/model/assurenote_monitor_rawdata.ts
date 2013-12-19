@@ -37,15 +37,15 @@ export class MonitorRawdata {
 
 export class MonitorRawdataDAO extends model.DAO {
 
-	insertRawdata(params: InsertArg, callback: (err: any, monitor_id: number, rawdata_id: number)=>void): void {
+	insertRawdata(params: InsertArg, callback: (err: any, rawdata_id: number) => void): void {
 		this.con.query('INSERT INTO assurenote_monitor_rawdata(monitor_id, data, context, timestamp) VALUES(?, ?, ?, ?)',
 			[params.monitor_id, params.data, params.context ? params.context : '', params.timestamp],
 			(err, result) => {
 				if(err) {
-					callback(err, params.monitor_id, null);
+					callback(err, null);
 					return;
 				}
-				callback(err, params.monitor_id, result.insertId);
+				callback(err, result.insertId);
 			}
 		);
 	}

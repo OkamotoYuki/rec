@@ -39,10 +39,10 @@ var MonitorRawdataDAO = (function (_super) {
     MonitorRawdataDAO.prototype.insertRawdata = function (params, callback) {
         this.con.query('INSERT INTO assurenote_monitor_rawdata(monitor_id, data, context, timestamp) VALUES(?, ?, ?, ?)', [params.monitor_id, params.data, params.context ? params.context : '', params.timestamp], function (err, result) {
             if (err) {
-                callback(err, params.monitor_id, null);
+                callback(err, null);
                 return;
             }
-            callback(err, params.monitor_id, result.insertId);
+            callback(err, result.insertId);
         });
     };
 

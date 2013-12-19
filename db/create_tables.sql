@@ -48,19 +48,17 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `rec`.`dshell_test_items`
+-- Table `rec`.`dshell_test_envs`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `rec`.`dshell_test_items` ;
+DROP TABLE IF EXISTS `rec`.`dshell_test_envs` ;
 
-CREATE TABLE IF NOT EXISTS `rec`.`dshell_test_items` (
-  `test_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `rec`.`dshell_test_envs` (
+  `env_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user` VARCHAR(45) NOT NULL,
   `host` VARCHAR(45) NOT NULL,
-  `filepath` VARCHAR(45) NOT NULL,
-  `funcname` VARCHAR(45) NOT NULL,
-  `latest_version` INT NOT NULL,
-  PRIMARY KEY (`test_id`),
-  UNIQUE INDEX `testid_UNIQUE` (`test_id` ASC))
+  `version` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`env_id`),
+  UNIQUE INDEX `testid_UNIQUE` (`env_id` ASC))
 ENGINE = InnoDB;
 
 
@@ -71,17 +69,17 @@ DROP TABLE IF EXISTS `rec`.`dshell_test_results` ;
 
 CREATE TABLE IF NOT EXISTS `rec`.`dshell_test_results` (
   `result_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `test_id` INT UNSIGNED NOT NULL,
-  `version` INT NOT NULL,
+  `env_id` INT UNSIGNED NOT NULL,
+  `funcname` VARCHAR(45) NOT NULL,
   `result` TINYINT(1) NOT NULL,
-  `failure_acceptable` TINYINT(1) NOT NULL,
+  `ignorable` TINYINT(1) NOT NULL,
   `timestamp` DATETIME NOT NULL,
   PRIMARY KEY (`result_id`),
-  INDEX `fk_dshell_test_results_dshell_tests1_idx` (`test_id` ASC),
+  INDEX `fk_dshell_test_results_dshell_tests1_idx` (`env_id` ASC),
   UNIQUE INDEX `result_id_UNIQUE` (`result_id` ASC),
   CONSTRAINT `fk_dshell_test_results_dshell_tests1`
-    FOREIGN KEY (`test_id`)
-    REFERENCES `rec`.`dshell_test_items` (`test_id`)
+    FOREIGN KEY (`env_id`)
+    REFERENCES `rec`.`dshell_test_envs` (`env_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

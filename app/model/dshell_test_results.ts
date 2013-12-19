@@ -1,89 +1,78 @@
 ///<reference path='../d.ts/DefinitelyTyped/async/async.d.ts'/>
 
 import model = module('./model');
-import model_dshell_test_items = module('./dshell_test_items');
+import model_dshell_test_envs = module('./dshell_test_envs');
 var async = require('async');
 
 export interface InsertArg {
-	test_id: number;
-	version: number;
+	env_id: number;
+	funcname: string;
 	result: boolean;
-	failure_acceptable: boolean;
+	ignorable: boolean;
 	timestamp: Date;
 }
 
-export class DShellTestResult {
+export class TestResult {
 
 	user: string;
 	host: string;
-	filepath: string;
-	funcname: string;
+	version: string;
 
-	constructor(public result_id: number, public version: number, public result: boolean, public failure_acceptable: boolean, public timestamp: Date) {
+	constructor(public result_id: number, public funcname: string, public result: boolean, public ignorable: boolean, public timestamp: Date) {
 		this.user = null;
 		this.host = null;
-		this.filepath = null;
-		this.funcname = null;
+		this.version = null;
 	}
 
 	static tableToObject(row: any) {
-		return new DShellTestResult(row.result_id, row.version, row.result, row.failure_acceptable, row.timestamp);
+		return new TestResult(row.result_id, row.funcname, Boolean(row.result), Boolean(row.ignorable), row.timestamp);
 	}
 
-	setTestItemInfo(): void {
+	setEnvInfo(user: string, host: string, version: string): void {
+		this.user = user;
+		this.host = host;
+		this.version = version;
 	}
 
 }
 
-//export class RuntimeRawdataDAO extends model.DAO {
-//
-//	insert(params: InsertArg, callback: (err: any, monitor_id: number, rawdata_id: number)=>void): void {
-//		this.con.query('INSERT INTO runtime_rawdata(monitor_id, data, context, timestamp) VALUES(?, ?, ?, ?)',
-//			[params.monitor_id, params.data, params.context ? params.context : '', params.timestamp],
-//			(err, result) => {
-//				if(err) {
-//					callback(err, params.monitor_id, null);
-//					return;
-//				}
-//				callback(err, params.monitor_id, result.insertId);
-//			}
-//		);
-//	}
-//
-//	get(rawdata_id: number, callback: (err: any, rawdata: RuntimeRawdata)=>void): void {
-//		async.waterfall([
-//			(next) => {
-//				this.con.query('SELECT * FROM runtime_rawdata WHERE rawdata_id=?',
-//					[rawdata_id],
-//					(err, result) => {
-//						result = result[0];
-//						next(err, RuntimeRawdata.tableToObject(result), result.monitor_id);
-//					}
-//				);
-//			},
-//			(rawdata: RuntimeRawdata, monitor_id: number, next) => {
-//				var runtimeMonitorDAO = new model_runtime_monitors.RuntimeMonitorDAO(this.con);
-//				runtimeMonitorDAO.get(monitor_id, (err: any, monitor: model_runtime_monitors.RuntimeMonitor) => {
-//					rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
-//					next(err, rawdata);
-//				});
-//			}
-//		],
-//		(err: any, rawdata: RuntimeRawdata) => {
-//			callback(err, rawdata);
-//		});
-//	}
-//
-//	getWithMonitorInfo(rawdata_id: number, monitor: model_runtime_monitors.RuntimeMonitor, callback: (err: any, rawdata: RuntimeRawdata)=>void): void {
-//		this.con.query('SELECT * FROM runtime_rawdata WHERE rawdata_id=?',
-//			[rawdata_id],
-//			(err, result) => {
-//				result = result[0];
-//				var rawdata = RuntimeRawdata.tableToObject(result);
-//				rawdata.setMonitorInfo(monitor.type, monitor.location, monitor.auth_id);
-//				callback(err, rawdata);
-//			}
-//		);
-//	}
-//
-//}
+export class TestResultDAO extends model.DAO {
+
+	insertResult(params: InsertArg, callback: (err: any, result_id: number) => void): void {
+		this.con.query('INSERT INTO dshell_test_results(env_id, funcname, result, ignorable, timestamp) VALUES(?, ?, ?, ?, ?)',
+			[params.env_id, params.funcname, params.result, params.ignorable, params.timestamp],
+			(err, result) => {
+				if(err) {
+					callback(err, null);
+					return;
+				}
+				callback(err, result.insertId);
+			}
+		);
+	}
+
+	selectResult(user: string, host: string, version: string, funcname: string, callback: (err: any, testResult: TestResult) => void): void {
+		var testEnvDAO = new model_dshell_test_envs.TestEnvDAO(this.con);
+
+		async.waterfall([
+			(next) => {
+				testEnvDAO.selectEnv(user, host, version, (err: any, env: model_dshell_test_envs.TestEnv) => next(err, env));
+			},
+			(env: model_dshell_test_envs.TestEnv, next) => {
+				this.con.query('SELECT * FROM dshell_test_results WHERE env_id=? AND funcname=?',
+					[env.env_id, funcname],
+					(err, result) => {
+						result = result[0];
+						var testResult = TestResult.tableToObject(result);
+						testResult.setEnvInfo(env.user, env.host, env.version);
+						next(err, testResult);
+					}
+				);
+			}
+		],
+		(err: any, testResult: TestResult) => {
+			callback(err, testResult);
+		});
+	}
+
+}

@@ -54,7 +54,7 @@ function pushRawData(params, callback) {
             }
         },
         function (monitor_id, next) {
-            monitorRawdataDAO.insertRawdata({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, function (err, monitor_id, rawdata_id) {
+            monitorRawdataDAO.insertRawdata({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, function (err, rawdata_id) {
                 return next(err, monitor_id, rawdata_id);
             });
         },
