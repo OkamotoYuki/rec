@@ -18,7 +18,7 @@ function pushTestResult(params, callback) {
             checks.push('Test version is required.');
         if (params && !params.funcname)
             checks.push('Function name is required.');
-        if (params && !params.result)
+        if (params && !('result' in params))
             checks.push('Test result is required.');
 
         if (checks.length > 0) {

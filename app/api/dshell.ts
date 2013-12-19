@@ -15,7 +15,7 @@ export function pushTestResult(params: any, callback: type.Callback) {
 		if(params && !params.host) checks.push('Host name is required.');
 		if(params && !params.version) checks.push('Test version is required.');
 		if(params && !params.funcname) checks.push('Function name is required.');
-		if(params && !params.result) checks.push('Test result is required.');
+		if(params && !('result' in params)) checks.push('Test result is required.');
 		//if(params && !params.ignorable) checks.push('Condition whether this test is ignorable or not is required.');
 		if(checks.length > 0) {
 			callback.onFailure(new error.InvalidParamsError(checks, null));
