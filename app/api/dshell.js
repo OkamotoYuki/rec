@@ -130,7 +130,7 @@ function getTestResult(params, callback) {
 }
 exports.getTestResult = getTestResult;
 
-function getTestResultSeries(params, callback) {
+function getTestResultList(params, callback) {
     function validate(params) {
         var checks = [];
         if (!params)
@@ -139,8 +139,8 @@ function getTestResultSeries(params, callback) {
             checks.push('User name is required.');
         if (params && !params.host)
             checks.push('Host name is required.');
-        if (params && !params.funcname)
-            checks.push('Function name is required.');
+        if (params && !params.version)
+            checks.push('Test version is required.');
         if (checks.length > 0) {
             callback.onFailure(new error.InvalidParamsError(checks, null));
         }
@@ -149,12 +149,35 @@ function getTestResultSeries(params, callback) {
     if (!validate(params))
         return;
 
-    callback.onSuccess([]);
-}
-exports.getTestResultSeries = getTestResultSeries;
+    var con = new db.Database();
+    var testResultDAO = new model_dshell_test_results.TestResultDAO(con);
 
-function getLatestVersionInfo(params, callback) {
-    callback.onSuccess([]);
+    async.waterfall([
+        function (next) {
+            con.begin(function (err, result) {
+                return next(err);
+            });
+        },
+        function (next) {
+            testResultDAO.selectResultList(params.user, params.host, params.version, function (err, testResultList) {
+                return next(err, testResultList);
+            });
+        },
+        function (testResultList, next) {
+            con.commit(function (err, result) {
+                return next(err, testResultList);
+            });
+        }
+    ], function (err, testResultList) {
+        if (err) {
+            con.rollback();
+            con.close();
+            callback.onFailure(err);
+            return;
+        }
+        con.close();
+        callback.onSuccess(testResultList);
+    });
 }
-exports.getLatestVersionInfo = getLatestVersionInfo;
+exports.getTestResultList = getTestResultList;
 

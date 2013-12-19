@@ -104,13 +104,13 @@ export function getTestResult(params: any, callback: type.Callback) {
 
 }
 
-export function getTestResultSeries(params: any, callback: type.Callback) {
+export function getTestResultList(params: any, callback: type.Callback) {
 	function validate(params: any): boolean {
 		var checks = [];
 		if(!params) checks.push('Parameter is required.');
 		if(params && !params.user) checks.push('User name is required.');
 		if(params && !params.host) checks.push('Host name is required.');
-		if(params && !params.funcname) checks.push('Function name is required.');
+		if(params && !params.version) checks.push('Test version is required.');
 		if(checks.length > 0) {
 			callback.onFailure(new error.InvalidParamsError(checks, null));
 		}
@@ -118,11 +118,28 @@ export function getTestResultSeries(params: any, callback: type.Callback) {
 	}
 	if(!validate(params)) return;
 
-	// TODO
-	callback.onSuccess([]);    // FIXME
-}
+	var con = new db.Database();
+	var testResultDAO = new model_dshell_test_results.TestResultDAO(con);
 
-export function getLatestVersionInfo(params: any, callback: type.Callback) {
-	// TODO
-	callback.onSuccess([]);    // FIXME
+	async.waterfall([
+		(next) => {
+			con.begin((err, result) => next(err));
+		},
+		(next) => {
+			testResultDAO.selectResultList(params.user, params.host, params.version, (err: any, testResultList: model_dshell_test_results.TestResult[]) => next(err, testResultList));
+		},
+		(testResultList: model_dshell_test_results.TestResult[], next) => {
+			con.commit((err, result) => next(err, testResultList));
+		}
+	],
+	(err: any, testResultList: model_dshell_test_results.TestResult[]) => {
+		if(err) {
+			con.rollback();
+			con.close();
+			callback.onFailure(err);
+			return;
+		}
+		con.close();
+		callback.onSuccess(testResultList);
+	});
 }

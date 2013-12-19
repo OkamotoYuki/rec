@@ -75,4 +75,31 @@ export class TestResultDAO extends model.DAO {
 		});
 	}
 
+	selectResultList(user: string, host: string, version: string, callback: (err: any, testResultList: TestResult[]) => void): void {
+		var testEnvDAO = new model_dshell_test_envs.TestEnvDAO(this.con);
+
+		async.waterfall([
+			(next) => {
+				testEnvDAO.selectEnv(user, host, version, (err: any, env: model_dshell_test_envs.TestEnv) => next(err, env));
+			},
+			(env: model_dshell_test_envs.TestEnv, next) => {
+				this.con.query('SELECT * FROM dshell_test_results WHERE env_id=?',
+					[env.env_id],
+					(err, result) => {
+						var testResultList: TestResult[] = [];
+						for(var i: number = 0; i < result.length; i++) {
+							var testResult: TestResult = TestResult.tableToObject(result[i]);
+							testResult.setEnvInfo(env.user, env.host, env.version);
+							testResultList.push(testResult);
+						}
+						next(err, testResultList);
+					}
+				);
+			}
+		],
+		(err: any, testResultList: TestResult[]) => {
+			callback(err, testResultList);
+		});
+	}
+
 }

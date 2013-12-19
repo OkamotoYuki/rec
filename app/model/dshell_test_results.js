@@ -69,6 +69,32 @@ var TestResultDAO = (function (_super) {
             callback(err, testResult);
         });
     };
+
+    TestResultDAO.prototype.selectResultList = function (user, host, version, callback) {
+        var _this = this;
+        var testEnvDAO = new model_dshell_test_envs.TestEnvDAO(this.con);
+
+        async.waterfall([
+            function (next) {
+                testEnvDAO.selectEnv(user, host, version, function (err, env) {
+                    return next(err, env);
+                });
+            },
+            function (env, next) {
+                _this.con.query('SELECT * FROM dshell_test_results WHERE env_id=?', [env.env_id], function (err, result) {
+                    var testResultList = [];
+                    for (var i = 0; i < result.length; i++) {
+                        var testResult = TestResult.tableToObject(result[i]);
+                        testResult.setEnvInfo(env.user, env.host, env.version);
+                        testResultList.push(testResult);
+                    }
+                    next(err, testResultList);
+                });
+            }
+        ], function (err, testResultList) {
+            callback(err, testResultList);
+        });
+    };
     return TestResultDAO;
 })(model.DAO);
 exports.TestResultDAO = TestResultDAO;
