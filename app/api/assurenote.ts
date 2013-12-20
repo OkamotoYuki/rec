@@ -3,8 +3,8 @@
 import db = module('../db/db');
 import type = module('./type')
 import error = module('./error');
-import model_assurenote_monitor_items = module('../model/assurenote_monitor_items');
-import model_assurenote_monitor_rawdata = module('../model/assurenote_monitor_rawdata');
+import model_monitors = module('../model/monitors');
+import model_rawdata = module('../model/rawdata');
 var async = require('async');
 
 export function pushRawData(params: any, callback: type.Callback) {
@@ -14,7 +14,7 @@ export function pushRawData(params: any, callback: type.Callback) {
 		if(params && !params.type) checks.push('Monitor type is required.');
 		if(params && !params.location) checks.push('Monitor location is required.');
 		if(params && !params.data) checks.push('Monitor data is required.');
-		if(params && !params.auth_id) checks.push('Auth ID is required.');
+		if(params && !params.authid) checks.push('Auth ID is required.');
 		if(checks.length > 0) {
 			callback.onFailure(new error.InvalidParamsError(checks, null));
 		}
@@ -23,8 +23,8 @@ export function pushRawData(params: any, callback: type.Callback) {
 	if(!validate(params)) return;
 
 	var con = new db.Database();
-	var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
-	var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
+	var monitorDAO = new model_monitors.MonitorDAO(con);
+	var rawdataDAO = new model_rawdata.RawdataDAO(con);
 	var timestamp = new Date();
 
 	async.waterfall([
@@ -32,28 +32,28 @@ export function pushRawData(params: any, callback: type.Callback) {
 			con.begin((err, result) => next(err));
 		},
 		(next) => {
-			monitorItemDAO.selectItem(params.type, params.location, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => next(err, monitor));
+			monitorDAO.selectItem(params.type, params.location, (err: any, monitor: model_monitors.Monitor) => next(err, monitor));
 		},
-		(monitor: model_assurenote_monitor_items.MonitorItem, next) => {
+		(monitor: model_monitors.Monitor, next) => {
 			if(monitor) {
-				next(null, monitor.monitor_id);
+				next(null, monitor.monitorid);
 			}
 			else {
 				params['begin_timestamp'] = timestamp;
 				params['latest_timestamp'] = timestamp;
-				monitorItemDAO.insertItem(params, (err: any, monitor_id: number) => next(err, monitor_id));
+				monitorDAO.insertItem(params, (err: any, monitorid: number) => next(err, monitorid));
 			}
 		},
-		(monitor_id: number, next) => {
-			monitorRawdataDAO.insertRawdata({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, (err: any, rawdata_id: number) => next(err, monitor_id, rawdata_id));
+		(monitorid: number, next) => {
+			rawdataDAO.insertRawdata({ monitorid: monitorid, data: params.data, context: params.context, timestamp: timestamp }, (err: any, recid: number) => next(err, monitorid, recid));
 		},
-		(monitor_id: number, rawdata_id: number, next) => {
-			monitorItemDAO.updateItem(monitor_id, rawdata_id, timestamp, (err: any) => next(err, rawdata_id));
+		(monitorid: number, recid: number, next) => {
+			monitorDAO.updateItem(monitorid, recid, timestamp, (err: any) => next(err, recid));
 		},
-		(rawdata_id: number, next) => {
-			con.commit((err, result) => next(err, rawdata_id));
+		(recid: number, next) => {
+			con.commit((err, result) => next(err, recid));
 		}
-	], (err: any, rawdata_id: number) => {
+	], (err: any, recid: number) => {
 		if(err) {
 			con.rollback();
 			con.close();
@@ -61,7 +61,7 @@ export function pushRawData(params: any, callback: type.Callback) {
 			return;
 		}
 		con.close();
-		callback.onSuccess({ rawdata_id: rawdata_id });
+		callback.onSuccess({ recid: recid });
 	});
 }
 
@@ -69,7 +69,7 @@ export function getRawData(params: any, callback: type.Callback) {
 	function validate(params: any): boolean {
 		var checks = [];
 		if(!params) checks.push('Parameter is required.');
-		if(params && !params.rawdata_id) checks.push('Rawdata ID is required.');
+		if(params && !params.recid) checks.push('Rawdata ID is required.');
 		if(checks.length > 0) {
 			callback.onFailure(new error.InvalidParamsError(checks, null));
 		}
@@ -78,20 +78,20 @@ export function getRawData(params: any, callback: type.Callback) {
 	if(!validate(params)) return;
 
 	var con = new db.Database();
-	var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
+	var rawdataDAO = new model_rawdata.RawdataDAO(con);
 
 	async.waterfall([
 		(next) => {
 			con.begin((err, result) => next(err));
 		},
 		(next) => {
-			monitorRawdataDAO.getRawdata(params.rawdata_id, (err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata) => next(err, rawdata));
+			rawdataDAO.getRawdata(params.recid, (err: any, rawdata: model_rawdata.Rawdata) => next(err, rawdata));
 		},
-		(rawdata: model_assurenote_monitor_rawdata.MonitorRawdata, next) => {
+		(rawdata: model_rawdata.Rawdata, next) => {
 			con.commit((err, result) => next(err, rawdata));
 		}
 	],
-	(err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata, next) => {
+	(err: any, rawdata: model_rawdata.Rawdata, next) => {
 		if(err) {
 			con.rollback();
 			con.close();
@@ -118,8 +118,8 @@ export function getLatestData(params: any, callback: type.Callback) {
 	if(!validate(params)) return;
 
 	var con = new db.Database();
-	var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
-	var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
+	var monitorDAO = new model_monitors.MonitorDAO(con);
+	var rawdataDAO = new model_rawdata.RawdataDAO(con);
 	var timestamp = new Date();
 
 	async.waterfall([
@@ -127,16 +127,16 @@ export function getLatestData(params: any, callback: type.Callback) {
 			con.begin((err, result) => next(err));
 		},
 		(next) => {
-			monitorItemDAO.selectItem(params.type, params.location, (err: any, monitor: model_assurenote_monitor_items.MonitorItem) => next(err, monitor));
+			monitorDAO.selectItem(params.type, params.location, (err: any, monitor: model_monitors.Monitor) => next(err, monitor));
 		},
-		(monitor: model_assurenote_monitor_items.MonitorItem, next) => {
-			monitorRawdataDAO.getRawdataWithMonitorInfo(monitor.latest_data_id, monitor, (err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata) => next(err, rawdata));
+		(monitor: model_monitors.Monitor, next) => {
+			rawdataDAO.getRawdataWithMonitorInfo(monitor.latest_recid, monitor, (err: any, rawdata: model_rawdata.Rawdata) => next(err, rawdata));
 		},
-		(rawdata: model_assurenote_monitor_rawdata.MonitorRawdata, next) => {
+		(rawdata: model_rawdata.Rawdata, next) => {
 			con.commit((err, result) => next(err, rawdata));
 		}
 	],
-	(err: any, rawdata: model_assurenote_monitor_rawdata.MonitorRawdata, next) => {
+	(err: any, rawdata: model_rawdata.Rawdata, next) => {
 		if(err) {
 			con.rollback();
 			con.close();
@@ -167,20 +167,20 @@ export function getRawDataList(params: any, callback: type.Callback) {
 
 export function getMonitorList(params: any, callback: type.Callback) {
 	var con = new db.Database();
-	var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
+	var monitorDAO = new model_monitors.MonitorDAO(con);
 
 	async.waterfall([
 		(next) => {
 			con.begin((err, result) => next(err));
 		},
 		(next) => {
-			monitorItemDAO.getItemList((err: any, monitorList: model_assurenote_monitor_items.MonitorItem[]) => next(err, monitorList));
+			monitorDAO.getItemList((err: any, monitorList: model_monitors.Monitor[]) => next(err, monitorList));
 		},
-		(monitorList: model_assurenote_monitor_items.MonitorItem[], next) => {
+		(monitorList: model_monitors.Monitor[], next) => {
 			con.commit((err, result) => next(err, monitorList));
 		}
 	],
-	(err: any, monitorList: model_assurenote_monitor_items.MonitorItem[], next) => {
+	(err: any, monitorList: model_monitors.Monitor[], next) => {
 		if(err) {
 			con.rollback();
 			con.close();

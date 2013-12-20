@@ -1,8 +1,8 @@
 var db = require('../db/db');
 
 var error = require('./error');
-var model_assurenote_monitor_items = require('../model/assurenote_monitor_items');
-var model_assurenote_monitor_rawdata = require('../model/assurenote_monitor_rawdata');
+var model_monitors = require('../model/monitors');
+var model_rawdata = require('../model/rawdata');
 var async = require('async');
 
 function pushRawData(params, callback) {
@@ -16,7 +16,7 @@ function pushRawData(params, callback) {
             checks.push('Monitor location is required.');
         if (params && !params.data)
             checks.push('Monitor data is required.');
-        if (params && !params.auth_id)
+        if (params && !params.authid)
             checks.push('Auth ID is required.');
         if (checks.length > 0) {
             callback.onFailure(new error.InvalidParamsError(checks, null));
@@ -27,8 +27,8 @@ function pushRawData(params, callback) {
         return;
 
     var con = new db.Database();
-    var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
-    var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
+    var monitorDAO = new model_monitors.MonitorDAO(con);
+    var rawdataDAO = new model_rawdata.RawdataDAO(con);
     var timestamp = new Date();
 
     async.waterfall([
@@ -38,37 +38,37 @@ function pushRawData(params, callback) {
             });
         },
         function (next) {
-            monitorItemDAO.selectItem(params.type, params.location, function (err, monitor) {
+            monitorDAO.selectItem(params.type, params.location, function (err, monitor) {
                 return next(err, monitor);
             });
         },
         function (monitor, next) {
             if (monitor) {
-                next(null, monitor.monitor_id);
+                next(null, monitor.monitorid);
             } else {
                 params['begin_timestamp'] = timestamp;
                 params['latest_timestamp'] = timestamp;
-                monitorItemDAO.insertItem(params, function (err, monitor_id) {
-                    return next(err, monitor_id);
+                monitorDAO.insertItem(params, function (err, monitorid) {
+                    return next(err, monitorid);
                 });
             }
         },
-        function (monitor_id, next) {
-            monitorRawdataDAO.insertRawdata({ monitor_id: monitor_id, data: params.data, context: params.context, timestamp: timestamp }, function (err, rawdata_id) {
-                return next(err, monitor_id, rawdata_id);
+        function (monitorid, next) {
+            rawdataDAO.insertRawdata({ monitorid: monitorid, data: params.data, context: params.context, timestamp: timestamp }, function (err, recid) {
+                return next(err, monitorid, recid);
             });
         },
-        function (monitor_id, rawdata_id, next) {
-            monitorItemDAO.updateItem(monitor_id, rawdata_id, timestamp, function (err) {
-                return next(err, rawdata_id);
+        function (monitorid, recid, next) {
+            monitorDAO.updateItem(monitorid, recid, timestamp, function (err) {
+                return next(err, recid);
             });
         },
-        function (rawdata_id, next) {
+        function (recid, next) {
             con.commit(function (err, result) {
-                return next(err, rawdata_id);
+                return next(err, recid);
             });
         }
-    ], function (err, rawdata_id) {
+    ], function (err, recid) {
         if (err) {
             con.rollback();
             con.close();
@@ -76,7 +76,7 @@ function pushRawData(params, callback) {
             return;
         }
         con.close();
-        callback.onSuccess({ rawdata_id: rawdata_id });
+        callback.onSuccess({ recid: recid });
     });
 }
 exports.pushRawData = pushRawData;
@@ -86,7 +86,7 @@ function getRawData(params, callback) {
         var checks = [];
         if (!params)
             checks.push('Parameter is required.');
-        if (params && !params.rawdata_id)
+        if (params && !params.recid)
             checks.push('Rawdata ID is required.');
         if (checks.length > 0) {
             callback.onFailure(new error.InvalidParamsError(checks, null));
@@ -97,7 +97,7 @@ function getRawData(params, callback) {
         return;
 
     var con = new db.Database();
-    var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
+    var rawdataDAO = new model_rawdata.RawdataDAO(con);
 
     async.waterfall([
         function (next) {
@@ -106,7 +106,7 @@ function getRawData(params, callback) {
             });
         },
         function (next) {
-            monitorRawdataDAO.getRawdata(params.rawdata_id, function (err, rawdata) {
+            rawdataDAO.getRawdata(params.recid, function (err, rawdata) {
                 return next(err, rawdata);
             });
         },
@@ -146,8 +146,8 @@ function getLatestData(params, callback) {
         return;
 
     var con = new db.Database();
-    var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
-    var monitorRawdataDAO = new model_assurenote_monitor_rawdata.MonitorRawdataDAO(con);
+    var monitorDAO = new model_monitors.MonitorDAO(con);
+    var rawdataDAO = new model_rawdata.RawdataDAO(con);
     var timestamp = new Date();
 
     async.waterfall([
@@ -157,12 +157,12 @@ function getLatestData(params, callback) {
             });
         },
         function (next) {
-            monitorItemDAO.selectItem(params.type, params.location, function (err, monitor) {
+            monitorDAO.selectItem(params.type, params.location, function (err, monitor) {
                 return next(err, monitor);
             });
         },
         function (monitor, next) {
-            monitorRawdataDAO.getRawdataWithMonitorInfo(monitor.latest_data_id, monitor, function (err, rawdata) {
+            rawdataDAO.getRawdataWithMonitorInfo(monitor.latest_recid, monitor, function (err, rawdata) {
                 return next(err, rawdata);
             });
         },
@@ -207,7 +207,7 @@ exports.getRawDataList = getRawDataList;
 
 function getMonitorList(params, callback) {
     var con = new db.Database();
-    var monitorItemDAO = new model_assurenote_monitor_items.MonitorItemDAO(con);
+    var monitorDAO = new model_monitors.MonitorDAO(con);
 
     async.waterfall([
         function (next) {
@@ -216,7 +216,7 @@ function getMonitorList(params, callback) {
             });
         },
         function (next) {
-            monitorItemDAO.getItemList(function (err, monitorList) {
+            monitorDAO.getItemList(function (err, monitorList) {
                 return next(err, monitorList);
             });
         },
